@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-set -x
-for path in /tmp/a /tmp/a1 /tmp/test /usr/bashrc1 /usr/test /usr/test2 /test /test.tar.gz /tmp/hello; do
-  [[ ! -e "$path" ]] || { echo "实验路径已存在，请先检查: $path" >&2; exit 1; }
-done
 cd /usr/local
 pwd
 cd ..
@@ -42,4 +37,4 @@ find "$HOME" -name .bashrc -type f
 sudo mkdir /test
 sudo tar -czf /test.tar.gz -C / test
 tar -xzf /test.tar.gz -C /tmp
-grep 'examples' "$HOME/.bashrc" || [[ $? == 1 ]]
+grep 'examples' "$HOME/.bashrc"
