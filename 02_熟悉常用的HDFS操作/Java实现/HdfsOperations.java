@@ -25,7 +25,7 @@ public class HdfsOperations {
     }
 
     private static void printStatus(FileStatus s) {
-        
+
         System.out.printf("%s\t%d\t%s\t%s%n", s.getPermission(), s.getLen(),
                 Instant.ofEpochMilli(s.getModificationTime()), s.getPath());
     }
@@ -59,7 +59,7 @@ public class HdfsOperations {
         for (int n = 0; ; n++) {
             java.nio.file.Path dest = dir.resolve(n == 0 ? name : stem + "(" + n + ")" + ext);
             try {
-                Files.createFile(dest); 
+                Files.createFile(dest);
             } catch (FileAlreadyExistsException e) {
                 continue;
             }

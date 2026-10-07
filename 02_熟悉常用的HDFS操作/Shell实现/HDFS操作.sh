@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 op=${1:?缺少命令}; shift
-need() { [[ $# == "$1" ]]; }
 file() { hdfs dfs -test -f "$1" || { echo "不是 HDFS 文件: $1" >&2; exit 1; }; }
 case "$op" in
   upload)

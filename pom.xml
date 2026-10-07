@@ -19,11 +19,18 @@
   </dependencies>
   <build>
     <finalName>lab1</finalName>
+    <sourceDirectory>${project.basedir}</sourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.13.0</version>
+        <configuration>
+          <includes>
+            <include>02_熟悉常用的HDFS操作/**/*.java</include>
+            <include>03_MapReduce初级编程/**/*.java</include>
+          </includes>
+        </configuration>
       </plugin>
     </plugins>
   </build>
