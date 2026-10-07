@@ -1,0 +1,81 @@
+name: verify-lab1
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-hadoop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: maven
+      - name: Build
+        run: mvn --batch-mode package
+      - name: Install Hadoop
+        run: |
+          curl -fL --retry 3 https://archive.apache.org/dist/hadoop/common/hadoop-3.4.2/hadoop-3.4.2.tar.gz -o /tmp/hadoop.tar.gz
+          curl -fL --retry 3 https://archive.apache.org/dist/hadoop/common/hadoop-3.4.2/hadoop-3.4.2.tar.gz.sha512 -o /tmp/hadoop.sha512
+          expected=$(grep -Eo '[0-9a-fA-F]{128}' /tmp/hadoop.sha512 | head -n 1)
+          test ${#expected} -eq 128
+          echo "$expected  /tmp/hadoop.tar.gz" | sha512sum -c -
+          sudo tar -xzf /tmp/hadoop.tar.gz -C /usr/local
+          sudo mv /usr/local/hadoop-3.4.2 /usr/local/hadoop
+          sudo useradd --create-home --shell /bin/bash hadoop
+          echo 'hadoop ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/lab1-hadoop
+          sudo cp -a "$GITHUB_WORKSPACE" /home/hadoop/lab1
+          sudo chown -R hadoop:hadoop /home/hadoop /usr/local/hadoop
+          printf 'export JAVA_HOME=%s\n' "$JAVA_HOME" | sudo tee -a /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+          cat <<'XML' | sudo tee /usr/local/hadoop/etc/hadoop/core-site.xml
+          <configuration>
+            <property><name>fs.defaultFS</name><value>hdfs://127.0.0.1:9000</value></property>
+            <property><name>hadoop.tmp.dir</name><value>/home/hadoop/hadoop-tmp</value></property>
+          </configuration>
+          XML
+          cat <<'XML' | sudo tee /usr/local/hadoop/etc/hadoop/hdfs-site.xml
+          <configuration>
+            <property><name>dfs.replication</name><value>1</value></property>
+            <property><name>dfs.namenode.rpc-bind-host</name><value>127.0.0.1</value></property>
+            <property><name>dfs.namenode.http-address</name><value>127.0.0.1:9870</value></property>
+            <property><name>dfs.datanode.address</name><value>127.0.0.1:9866</value></property>
+            <property><name>dfs.datanode.http.address</name><value>127.0.0.1:9864</value></property>
+            <property><name>dfs.datanode.ipc.address</name><value>127.0.0.1:9867</value></property>
+          </configuration>
+          XML
+      - name: Run Linux and HDFS checks
+        run: |
+          sudo -u hadoop env JAVA_HOME="$JAVA_HOME" HADOOP_HOME=/usr/local/hadoop PATH="/usr/local/hadoop/bin:$PATH" bash -c '
+            set -euo pipefail
+            cd /home/hadoop/lab1
+            mkdir -p results
+            uname -a > results/environment.txt
+            java -version 2>> results/environment.txt
+            hadoop version >> results/environment.txt
+            hdfs namenode -format -nonInteractive > results/format.log 2>&1
+            bash scripts/linux_commands.sh > results/linux.log 2>&1
+            bash scripts/check.sh > results/check.log 2>&1
+          '
+      - name: Collect results
+        if: always()
+        run: |
+          if sudo test -d /home/hadoop/lab1/results; then
+            sudo cp -a /home/hadoop/lab1/results "$GITHUB_WORKSPACE/"
+            sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE/results"
+            tail -n 40 results/check.log || true
+            tail -n 10 results/linux.log || true
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lab1-results
+          path: results/
+      - name: Stop HDFS
+        if: always()
+        run: |
+          sudo -u hadoop env JAVA_HOME="$JAVA_HOME" /usr/local/hadoop/bin/hdfs --daemon stop datanode || true
+          sudo -u hadoop env JAVA_HOME="$JAVA_HOME" /usr/local/hadoop/bin/hdfs --daemon stop namenode || true
