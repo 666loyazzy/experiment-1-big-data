@@ -16,7 +16,8 @@ public class MergeDedup {
     public static class DedupMapper extends Mapper<LongWritable, Text, Text, NullWritable> {
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
-            context.write(value, NullWritable.get());
+            String record = value.toString().trim().replaceAll("\\s+", " ");
+            context.write(new Text(record), NullWritable.get());
         }
     }
 

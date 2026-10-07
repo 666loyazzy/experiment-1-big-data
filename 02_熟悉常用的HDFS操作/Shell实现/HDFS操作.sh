@@ -50,11 +50,12 @@ case "$op" in
     ;;
   append)
     if [ "$3" = head ]; then
+      body=$(mktemp)
       temp_file=$(mktemp)
-      cat "$2" > "$temp_file"
-      hdfs dfs -cat "$1" >> "$temp_file"
+      hdfs dfs -get -f "$1" "$body"
+      cat "$2" "$body" > "$temp_file"
       hdfs dfs -put -f "$temp_file" "$1"
-      rm "$temp_file"
+      rm "$body" "$temp_file"
     else
       hdfs dfs -appendToFile "$2" "$1"
     fi

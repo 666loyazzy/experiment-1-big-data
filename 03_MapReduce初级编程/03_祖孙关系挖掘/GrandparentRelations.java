@@ -16,7 +16,11 @@ public class GrandparentRelations {
     public static class FamilyMapper extends Mapper<LongWritable, Text, Text, Text> {
         public void map(LongWritable key, Text value, Context context)
                 throws IOException, InterruptedException {
-            String[] pair = value.toString().trim().split("\\s+");
+            String line = value.toString().trim();
+            if (line.isEmpty()) {
+                return;
+            }
+            String[] pair = line.split("\\s+");
             if (pair[0].equals("child")) {
                 return;
             }

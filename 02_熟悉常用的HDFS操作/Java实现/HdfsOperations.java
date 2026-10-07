@@ -2,7 +2,6 @@ package lab;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.Date;
@@ -53,7 +52,7 @@ public class HdfsOperations {
                     dest = new File(dir, number + "_" + source.getName());
                     number++;
                 }
-                IOUtils.copyBytes(fs.open(source), new FileOutputStream(dest), 4096, true);
+                fs.copyToLocalFile(source, new Path(dest.getPath()));
                 System.out.println(dest.getPath());
                 break;
             }
@@ -76,29 +75,41 @@ public class HdfsOperations {
             case "create": {
                 Path file = new Path(args[1]);
                 fs.mkdirs(file.getParent());
-                fs.create(file).close();
+                fs.create(file, false).close();
                 break;
             }
-            case "delete":
-                fs.delete(new Path(args[1]), false);
+            case "delete": {
+                Path file = new Path(args[1]);
+                if (fs.exists(file) && fs.getFileStatus(file).isFile()) {
+                    boolean deleted = fs.delete(file, false);
+                    System.out.println(deleted ? "删除成功" : "删除失败");
+                } else {
+                    System.out.println("文件不存在或不是普通文件");
+                }
                 break;
+            }
             case "mkdir":
                 fs.mkdirs(new Path(args[1]));
                 break;
-            case "rmdir":
-                fs.delete(new Path(args[1]), false);
+            case "rmdir": {
+                Path dir = new Path(args[1]);
+                if (fs.getFileStatus(dir).isDirectory() && fs.listStatus(dir).length == 0) {
+                    fs.delete(dir, false);
+                } else {
+                    System.out.println("目录非空或不是目录，未删除");
+                }
                 break;
+            }
             case "append": {
                 Path file = new Path(args[1]);
                 byte[] content = Files.readAllBytes(java.nio.file.Path.of(args[2]));
                 if (args[3].equals("head")) {
-                    FSDataInputStream in = fs.open(file);
-                    byte[] original = in.readAllBytes();
-                    in.close();
-                    OutputStream out = fs.create(file, true);
+                    Path temp = new Path(file.getParent(), file.getName() + ".tmp");
+                    OutputStream out = fs.create(temp, true);
                     out.write(content);
-                    out.write(original);
-                    out.close();
+                    IOUtils.copyBytes(fs.open(file), out, 4096, true);
+                    fs.delete(file, false);
+                    fs.rename(temp, file);
                 } else {
                     OutputStream out = fs.append(file);
                     out.write(content);
@@ -107,9 +118,14 @@ public class HdfsOperations {
                 break;
             }
             case "move": {
+                Path source = new Path(args[1]);
                 Path dest = new Path(args[2]);
-                fs.mkdirs(dest.getParent());
-                fs.rename(new Path(args[1]), dest);
+                if (fs.exists(source) && !fs.exists(dest)) {
+                    fs.mkdirs(dest.getParent());
+                    fs.rename(source, dest);
+                } else {
+                    System.out.println("源文件不存在或目标路径已存在");
+                }
                 break;
             }
         }
