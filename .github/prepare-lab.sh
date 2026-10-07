@@ -1,9 +1,9 @@
-set -e
+set -ex
 mkdir -p /tmp/lab-results
 cat /etc/os-release > /tmp/lab-results/environment.txt
 java -version 2>> /tmp/lab-results/environment.txt
 bash --version | head -n 1 >> /tmp/lab-results/environment.txt
-curl -fsSL --retry 2 https://archive.apache.org/dist/hadoop/common/hadoop-3.4.3/hadoop-3.4.3.tar.gz -o /tmp/hadoop.tar.gz
+curl -fL --connect-timeout 20 --max-time 240 https://downloads.apache.org/hadoop/common/hadoop-3.4.3/hadoop-3.4.3.tar.gz -o /tmp/hadoop.tar.gz
 sudo tar -xzf /tmp/hadoop.tar.gz -C /usr/local
 sudo mv /usr/local/hadoop-3.4.3 /usr/local/hadoop
 sudo useradd -m -s /bin/bash hadoop
