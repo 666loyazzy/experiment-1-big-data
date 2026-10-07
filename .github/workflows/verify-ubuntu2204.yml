@@ -1,0 +1,29 @@
+name: Temporary Ubuntu 22.04 lab verification
+on:
+  push:
+    branches: [codex/verify-ubuntu2204-4a636e8]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '11'
+      - name: Compile submitted Java code
+        run: mvn -B -ntp -DskipTests package
+      - name: Prepare temporary Hadoop environment
+        run: bash .github/prepare-lab.sh
+      - name: Run Linux, HDFS and YARN experiments
+        run: python3 .github/verify-lab.py
+      - name: Save execution results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu2204-lab-results
+          path: /tmp/lab-results
+          retention-days: 1
