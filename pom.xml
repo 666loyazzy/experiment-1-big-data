@@ -27,8 +27,8 @@
         <version>3.13.0</version>
         <configuration>
           <includes>
-            <include>02_熟悉常用的HDFS操作/**/*.java</include>
-            <include>03_MapReduce初级编程/**/*.java</include>
+            <include>2熟悉常用的HDFS操作/**/*.java</include>
+            <include>3MapReduce初级编程/**/*.java</include>
           </includes>
         </configuration>
       </plugin>
